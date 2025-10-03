@@ -1,43 +1,88 @@
+import "./App.css";
+import UserItem from "./components/UserItem.tsx";
+import useGetUsers from "./hooks/useGetUsers.tsx";
+import useDeleteUser from "./hooks/useDeleteUser.tsx";
+import type { User } from "./types/User.type";
+import AddEditForm from "./components/AddEditForm.tsx";
+import useCreateEditUser from "./hooks/useCreateEditUser.tsx";
 import { useState } from "react";
-import ListContainer from "./components/ListContainer.tsx";
-import ListItem from "./components/ListItem.tsx";
-import FormWithInput from "./components/FormWithInput.tsx";
 
 function App() {
-  const [list, setList] = useState<string[]>([]);
+  const {
+    users,
+    setUsers,
+    addUserToList,
+    isLoading: isFetchingUsers,
+  } = useGetUsers();
 
-  const handleOnSubmit = (value: string) => {
-    setList([...list, value]);
+  const { createUser, isLoading: isSubmitLoading } = useCreateEditUser();
+  const [update, setUpdate] = useState<User | null>(null);
+  const { deleteUser } = useDeleteUser(users, setUsers);
+
+  const handleOnSubmit = async (user: User) => {
+    if (update) {
+      const updatedUsers = users.map((u) =>
+        u.id === user.id ? { ...u, ...user } : u
+      );
+      setUsers(updatedUsers);
+      setUpdate(null);
+    } else {
+      const newUser = await createUser({
+        user: {
+          ...user,
+          created: new Date(),
+        },
+      });
+      if (newUser) {
+        addUserToList(newUser.user);
+      }
+    }
   };
 
-  const handleOnSearchSubmit = (value: string) => {
-    console.log(value);
-    list.find((e) => e === value);
+  const handleEdit = (user: User) => {
+    setUpdate(user);
+  };
+
+  const handleCancelUpdate = () => {
+    setUpdate(null);
   };
 
   return (
-    <div>
-      <h1>Todo list</h1>
-
-      <FormWithInput
-        id="add"
-        buttonText="Agregar"
-        placeholder="Ingrese una tarea..."
-        onSubmit={handleOnSubmit}
-      />
-
-      <FormWithInput
-        id="search"
-        buttonText="Buscar"
-        placeholder="Buscar en mis tareas"
-        onSubmit={handleOnSearchSubmit}
-      />
-
-      <ListContainer>
-        {list.map((item, index) => {
-          return <ListItem key={index}>{item}</ListItem>;
-        })}
-      </ListContainer>
+    <div className="app-container">
+      <div className="form-section">
+        <h2>CRUD de usuarios</h2>
+        <AddEditForm
+          onSubmit={handleOnSubmit}
+          loading={isSubmitLoading}
+          update={update}
+          onCancelUpdate={handleCancelUpdate}
+        />
+      </div>
+      <div className="table-section">
+        {isFetchingUsers && <p>Cargando...</p>}
+        {!isFetchingUsers && (
+          <table className="user-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>NOMBRE(S)</th>
+                <th>CORREO</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <UserItem
+                  key={user.id}
+                  user={user}
+                  onEdit={handleEdit}
+                  onDelete={deleteUser}
+                />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

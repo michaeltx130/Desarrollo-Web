@@ -1,7 +1,7 @@
 import React from "react";
 
 type ListItemProps = {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 };
 
 function ListItem({ children }: ListItemProps) {
